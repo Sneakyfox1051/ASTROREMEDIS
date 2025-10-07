@@ -397,7 +397,12 @@ with st.form("birth_details_form"):
     with col1:
         name = st.text_input("Full Name", placeholder="Enter your full name")
         dob = st.date_input("Date of Birth", value=datetime(2000, 5, 24).date())
-        tob = st.time_input("Time of Birth", value=datetime.strptime("14:30", "%H:%M").time())
+        tob_text = st.text_input("Time of Birth (HH:MM)", value="14:30", placeholder="e.g., 21:40", help="Enter time in 24-hour format (HH:MM)")
+        try:
+            tob = datetime.strptime(tob_text, "%H:%M").time()
+        except ValueError:
+            st.error("Please enter time in correct format (HH:MM), e.g., 21:40")
+            tob = datetime.strptime("14:30", "%H:%M").time()
     
     with col2:
         pob = st.text_input("Place of Birth", placeholder="e.g., Mumbai, India")
