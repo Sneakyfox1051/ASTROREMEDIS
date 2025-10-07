@@ -11,7 +11,13 @@ import pytz # For time zone handling
 from geopy.geocoders import Nominatim # For converting place name to coordinates
 
 # --- LangChain Imports ---
-from langchain_community.document_loaders import Docx2txtLoader
+try:
+    from langchain_community.document_loaders import Docx2txtLoader
+    DOCX2TXT_AVAILABLE = True
+except ImportError:
+    DOCX2TXT_AVAILABLE = False
+    st.warning("docx2txt not available. Word document processing will be limited.")
+
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
@@ -206,16 +212,32 @@ def calculate_chart_data(name, dob_date, tob_time, pob_text, latitude, longitude
 @st.cache_resource
 def load_vector_store(doc_files):
     all_docs = []
-    for doc_file in doc_files:
-        file_path = os.path.join("docs", doc_file)
-        if os.path.exists(file_path):
-            try:
-                loader = Docx2txtLoader(file_path)
-                all_docs.extend(loader.load())
-            except Exception as e:
-                 st.error(f"Error loading {doc_file}: {e}")
-        else:
-            print(f"Warning: Document file not found at {file_path}")
+    
+    if not DOCX2TXT_AVAILABLE:
+        st.warning("docx2txt library not available. Using fallback text processing.")
+        # Create a simple fallback with basic text content
+        fallback_text = """
+        KP Astrology Rules:
+        1. House signification is very important in KP astrology
+        2. Cuspal sublord is the key to predictions
+        3. Planet's signification depends on its star lord
+        4. Ruling planets at the time of query are important
+        5. Dasa and antardasa periods are crucial for timing
+        6. Sub-sub lords provide detailed analysis
+        """
+        from langchain.schema import Document
+        all_docs.append(Document(page_content=fallback_text, metadata={"source": "fallback"}))
+    else:
+        for doc_file in doc_files:
+            file_path = os.path.join("docs", doc_file)
+            if os.path.exists(file_path):
+                try:
+                    loader = Docx2txtLoader(file_path)
+                    all_docs.extend(loader.load())
+                except Exception as e:
+                    st.error(f"Error loading {doc_file}: {e}")
+            else:
+                print(f"Warning: Document file not found at {file_path}")
 
     if not all_docs:
         return None
