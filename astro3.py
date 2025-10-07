@@ -397,11 +397,25 @@ with st.form("birth_details_form"):
     with col1:
         name = st.text_input("Full Name", placeholder="Enter your full name")
         dob = st.date_input("Date of Birth", value=datetime(2000, 5, 24).date())
-        tob_text = st.text_input("Time of Birth (HH:MM)", value="14:30", placeholder="e.g., 21:40", help="Enter time in 24-hour format (HH:MM)")
+        st.markdown("**Time of Birth**")
+        col_time1, col_time2 = st.columns([2, 1])
+        with col_time1:
+            tob_text = st.text_input(
+                "Enter time (24-hour format)", 
+                value="14:30", 
+                placeholder="21:40", 
+                help="Format: HH:MM (24-hour clock)\nExamples: 09:15, 14:30, 21:40, 23:59",
+                label_visibility="collapsed"
+            )
+        with col_time2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("**Format:** HH:MM<br>**Example:** 21:40", unsafe_allow_html=True)
+        
         try:
             tob = datetime.strptime(tob_text, "%H:%M").time()
+            st.success(f"✅ Time set: {tob.strftime('%I:%M %p')} ({tob.strftime('%H:%M')})")
         except ValueError:
-            st.error("Please enter time in correct format (HH:MM), e.g., 21:40")
+            st.error("❌ Invalid format! Please use HH:MM format (e.g., 21:40)")
             tob = datetime.strptime("14:30", "%H:%M").time()
     
     with col2:
