@@ -323,6 +323,11 @@ def get_rag_response(question, vector_store, chart_data, conversation_history=No
         for msg in recent_messages:
             role = "User" if msg["role"] == "user" else "AstroBot"
             conversation_context += f"{role}: {msg['content']}\n"
+    
+    # Get current year for dynamic time references
+    from datetime import datetime
+    current_year = datetime.now().year
+    future_years = f"{current_year}-{current_year + 2}"
 
     system_prompt = f"""
     You are AstroBot, an experienced KP Jyotishacharya. Provide SHORT, DIRECT, and PERSONALIZED answers.
@@ -337,6 +342,14 @@ def get_rag_response(question, vector_store, chart_data, conversation_history=No
     - Make each answer UNIQUE based on the question
     - Vary your response style and approach
     - Reference previous conversation if relevant
+    
+    **CRITICAL TIME REFERENCE RULES:**
+    - ALWAYS use current year {current_year} and future years ({current_year + 1}, {current_year + 2}, etc.) for predictions
+    - NEVER mention past years like {current_year - 1}, {current_year - 2}, etc. unless specifically asked about past events
+    - For marriage predictions, mention {future_years} timeframes
+    - For career predictions, use {current_year}-{current_year + 1} timeframes
+    - For general future predictions, always reference {current_year} onwards
+    - Only mention past years if user specifically asks "What happened in {current_year - 1}?" or similar
 
     **Question Type:** {response_style}
     **User's Question:** "{question}"
@@ -347,7 +360,7 @@ def get_rag_response(question, vector_store, chart_data, conversation_history=No
     **KP ASTROLOGY KNOWLEDGE:**
     {context_from_docs}
 
-    Provide a SHORT, DIRECT answer to their specific question based on their chart.
+    Provide a SHORT, DIRECT answer to their specific question based on their chart. Use {current_year}+ years for all future predictions.
     """
     
     try:
