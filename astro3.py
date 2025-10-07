@@ -408,8 +408,8 @@ with st.form("birth_details_form"):
                 label_visibility="collapsed"
             )
         with col_time2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("**Format:** HH:MM<br>**Example:** 21:40", unsafe_allow_html=True)
+            st.markdown("**Format:** HH:MM")
+            st.markdown("**Example:** 21:40")
         
         try:
             tob = datetime.strptime(tob_text, "%H:%M").time()
