@@ -278,8 +278,8 @@ def draw_kundli_chart(planets_in_house, ascendant_sign):
     return fig
 
 # --- Function to get a Hinglish response from the AI ---
-def get_rag_response(question, vector_store, chart_data):
-    """Generate detailed personalized AI response based on chart data and KP astrology knowledge"""
+def get_rag_response(question, vector_store, chart_data, conversation_history=None):
+    """Generate personalized AI response based on chart data and KP astrology knowledge"""
     if vector_store is None:
         return "• **Knowledge base not loaded** - Please check your document files."
         
@@ -288,61 +288,78 @@ def get_rag_response(question, vector_store, chart_data):
     context_from_docs = "\n\n".join([doc.page_content for doc in relevant_docs])
     
     # Extract key chart information for context
+    ascendant_sign = chart_data.get('ascendant_sign_name', 'Unknown')
     chart_summary = f"""
     **Name:** {chart_data['name']}
-    **Ascendant:** {chart_data['ascendant_sign_name']} (Sign {chart_data['ascendant_sign']})
+    **Ascendant:** {ascendant_sign} (Sign {chart_data.get('ascendant_sign', 'Unknown')})
     **Location:** {chart_data['birth_location']}
     **Planet Positions:** {json.dumps(chart_data['planets'], indent=2)}
     **Mangal Dosha:** {'Present' if chart_data['mangal_dosha']['is_present'] else 'Absent'}
     """
 
+    # Determine question type and adjust response accordingly
+    question_lower = question.lower()
+    
+    if any(word in question_lower for word in ['personality', 'character', 'nature', 'traits', 'vyaktitva']):
+        response_style = "personality_analysis"
+    elif any(word in question_lower for word in ['career', 'job', 'profession', 'work', 'rozi', 'naukri']):
+        response_style = "career_guidance"
+    elif any(word in question_lower for word in ['love', 'marriage', 'relationship', 'shadi', 'pyaar', 'vivah']):
+        response_style = "relationship_advice"
+    elif any(word in question_lower for word in ['health', 'swasthya', 'illness', 'disease']):
+        response_style = "health_guidance"
+    elif any(word in question_lower for word in ['future', 'bhavishya', 'prediction', 'what will happen']):
+        response_style = "future_prediction"
+    elif any(word in question_lower for word in ['mangal dosha', 'manglik', 'mars', 'mangal']):
+        response_style = "mangal_dosha"
+    else:
+        response_style = "general_astrology"
+
+    # Build conversation context
+    conversation_context = ""
+    if conversation_history and len(conversation_history) > 0:
+        recent_messages = conversation_history[-4:]  # Last 4 messages for context
+        conversation_context = "\n**Recent Conversation:**\n"
+        for msg in recent_messages:
+            role = "User" if msg["role"] == "user" else "AstroBot"
+            conversation_context += f"{role}: {msg['content']}\n"
+
     system_prompt = f"""
-    You are AstroBot, an experienced and respected KP Jyotishacharya (Astrologer). Your role is to provide detailed, personalized astrological analysis.
+    You are AstroBot, an experienced KP Jyotishacharya. Provide SHORT, DIRECT, and PERSONALIZED answers.
 
-    **Response Format (CRITICAL - Follow this EXACT format):**
-    
-    Start with: "Aapka ascendant sign [SIGN_NAME] hai, jo ki Aapke vyaktitva ke bohot se pehluon ko prabhavit karta hai."
-    
-    Then provide 4-6 detailed bullet points using this format:
-    * [Detailed personality trait or characteristic]
-    * [Another aspect of their nature or behavior]
-    * [Strengths or positive qualities]
-    * [Potential challenges or areas to be aware of]
-    * [Career or life path insights]
-    * [Relationships or social aspects]
-    
-    End with: "Overall, Aap [summary of their nature] hote hain aur unka nature [descriptive quality] hota hai."
+    **IMPORTANT RULES:**
+    - Keep answers BRIEF (2-4 sentences max)
+    - Use Hinglish (Hindi + English)
+    - Be specific to their chart data
+    - Answer the EXACT question asked
+    - Use bullet points (*) for clarity
+    - Don't repeat the same generic advice
+    - Make each answer UNIQUE based on the question
+    - Vary your response style and approach
+    - Reference previous conversation if relevant
 
-    **Response Rules:**
-    - **Use Hinglish:** Respond in Hinglish (Hindi + English, Roman script)
-    - **Respectful Pronouns:** Always use 'Aap' and 'Aapka' when addressing the user
-    - **Detailed Analysis:** Provide comprehensive personality insights based on their ascendant sign
-    - **Personalized:** Make it specific to their chart data
-    - **Professional Tone:** Like an experienced astrologer giving a detailed reading
-    - **Use Chart Data:** Reference their specific ascendant sign and planetary positions
-    - **Bullet Points:** Use asterisk (*) for each point, not bullet symbols
-
-    ---
-    **CHART DATA FOR {chart_data['name']}:**
+    **Question Type:** {response_style}
+    **User's Question:** "{question}"
+    {conversation_context}
+    **CHART DATA:**
     {chart_summary}
-    ---
+
     **KP ASTROLOGY KNOWLEDGE:**
     {context_from_docs}
-    ---
-    
-    Now, provide a detailed, personalized astrological analysis in the EXACT format specified above for this question: "{question}"
+
+    Provide a SHORT, DIRECT answer to their specific question based on their chart.
     """
     
     try:
         response = openai.chat.completions.create(
             model="gpt-4-turbo",
             messages=[{"role": "user", "content": system_prompt}],
-            temperature=0.8,
-            max_tokens=800
+            temperature=0.9,  # Higher temperature for more varied responses
+            max_tokens=300    # Reduced for shorter responses
         )
         return response.choices[0].message.content
     except Exception as e:
-        return f"• **Error:** Sorry, I encountered an issue with the AI model: {e}"
+        return f"• **Error:** Sorry, I encountered an issue: {e}"
 
 # ----------------------------------------------------------------------
 ## MAIN STREAMLIT APPLICATION
@@ -455,6 +472,25 @@ if st.session_state.current_chart_data:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
+    # Sample questions for better engagement
+    st.markdown("**💡 Try asking:**")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("Tell me about my personality", help="Get personality insights"):
+            prompt = "Tell me about my personality"
+        if st.button("What about my career?", help="Career guidance"):
+            prompt = "What about my career?"
+    with col2:
+        if st.button("Love & relationships", help="Relationship advice"):
+            prompt = "Tell me about love and relationships"
+        if st.button("Health predictions", help="Health insights"):
+            prompt = "What about my health?"
+    with col3:
+        if st.button("Future predictions", help="Future insights"):
+            prompt = "What does my future hold?"
+        if st.button("Mangal dosha", help="Mangal dosha analysis"):
+            prompt = "Tell me about mangal dosha"
+    
     # Chat input
     if prompt := st.chat_input("Ask a question about your chart..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -472,7 +508,7 @@ if st.session_state.current_chart_data:
                 time.sleep(0.15)
             
             # Generate AI response
-            response = get_rag_response(prompt, vector_store, st.session_state.current_chart_data)
+            response = get_rag_response(prompt, vector_store, st.session_state.current_chart_data, st.session_state.messages)
             message_placeholder.markdown(response)
             
         st.session_state.messages.append({"role": "assistant", "content": response})
