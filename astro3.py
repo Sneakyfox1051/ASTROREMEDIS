@@ -485,25 +485,6 @@ if st.session_state.current_chart_data:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
-    # Sample questions for better engagement
-    st.markdown("**💡 Try asking:**")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("Tell me about my personality", help="Get personality insights"):
-            prompt = "Tell me about my personality"
-        if st.button("What about my career?", help="Career guidance"):
-            prompt = "What about my career?"
-    with col2:
-        if st.button("Love & relationships", help="Relationship advice"):
-            prompt = "Tell me about love and relationships"
-        if st.button("Health predictions", help="Health insights"):
-            prompt = "What about my health?"
-    with col3:
-        if st.button("Future predictions", help="Future insights"):
-            prompt = "What does my future hold?"
-        if st.button("Mangal dosha", help="Mangal dosha analysis"):
-            prompt = "Tell me about mangal dosha"
-    
     # Chat input
     if prompt := st.chat_input("Ask a question about your chart..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
