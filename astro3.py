@@ -396,7 +396,7 @@ with st.form("birth_details_form"):
     
     with col1:
         name = st.text_input("Full Name", placeholder="Enter your full name")
-        dob = st.date_input("Date of Birth", value=datetime(2000, 5, 24).date())
+        dob = st.date_input("Date of Birth", value=datetime(2000, 5, 24).date(), min_value=datetime(1900, 1, 1).date(), max_value=datetime.today().date())
         st.markdown("**Time of Birth**")
         col_time1, col_time2 = st.columns([2, 1])
         with col_time1:
